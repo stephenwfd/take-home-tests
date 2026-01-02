@@ -1,0 +1,365 @@
+================================================================================
+Sr. Full Stack Engineer Take-Home Project Package
+Complete Hiring Solution for RET Ventures ROP
+================================================================================
+
+DELIVERY DATE: January 2, 2025
+PROJECT: Renewal Risk Detection System
+TIME LIMIT: 2 hours
+CANDIDATES TESTED: Full-stack capabilities, scalability thinking, pragmatism
+
+================================================================================
+PACKAGE CONTENTS (7 files)
+================================================================================
+
+1. 00_READ_ME_FIRST.md (2,000 words)
+   Executive summary and quick-start guide
+   → Start here, then follow the workflow
+
+2. renewal_risk_takehome.md (1,200 words)
+   The main project brief sent to candidates
+   → Features: API design, database schema, React dashboard, webhooks
+   → What candidates receive in Round 2
+
+3. starter_schema.sql (400 words)
+   Pre-built PostgreSQL schema with core ROP tables
+   → Candidates only design renewal risk tables (saves 30 min)
+   → Properties, Units, Residents, Leases, Ledgers included
+
+4. seed_and_testing.md (1,500 words)
+   Manual testing guide with seed script
+   → How to verify submissions work
+   → TypeScript seed script (copy-paste ready)
+   → Expected results for each test
+   → Webhook testing with webhook.site
+
+5. evaluation_rubric.md (2,500 words)
+   Detailed 100-point scoring rubric
+   → Backend (60): Data modeling, API, webhooks, queries
+   → Frontend (25): Functionality, UX
+   → Code quality (15): Clarity, error handling
+   → Bonus agentic development (5)
+   → Red flags (auto-fail), green flags, deep-dive questions
+
+6. HIRING_GUIDE.md (2,000 words)
+   Complete hiring workflow
+   → How to send to candidates
+   → How to evaluate (60 min/candidate)
+   → Round 3 interview structure (45 min)
+   → FAQ for evaluation consistency
+   → Timeline example
+
+7. SAMPLE_EXCELLENT_SUBMISSION.md (3,000 words)
+   What a ~80-point submission looks like
+   → Directory structure
+   → Sample code (API, service, React)
+   → Architecture decisions explained
+   → Testing approach
+   → Reference for evaluators
+
+================================================================================
+WHAT THIS TESTS
+================================================================================
+
+✓ Full-Stack Shipping
+  - React + TypeScript frontend
+  - Node.js + TypeScript backend
+  - PostgreSQL database schema
+  - End-to-end feature delivery
+
+✓ Scalability Thinking
+  - Multi-tenant architecture
+  - Webhook delivery with p95 latency guarantees
+  - Query performance for 5000+ residents
+  - Avoiding noisy neighbors (backpressure, retry logic)
+
+✓ Hard Problems
+  - Async webhook delivery with retries
+  - Exponential backoff (1s, 2s, 4s, 8s, 16s)
+  - Idempotency (prevent duplicate deliveries)
+  - Dead-letter queue (failed webhooks)
+  - Request signing/authentication
+
+✓ Pragmatism Under Pressure
+  - 2-hour deadline (forces real-world tradeoffs)
+  - Ambiguity is intentional (tests decision-making)
+  - Working feature > perfect architecture
+
+✓ Communication
+  - README quality (clear, concise)
+  - Decision documentation
+  - Code clarity
+
+✓ Agentic Development
+  - How they use AI tools (Claude, Cursor, etc.)
+  - What they generate vs. what they write
+  - Understanding of AI-generated code
+
+================================================================================
+HOW TO USE
+================================================================================
+
+STEP 1: Review this package (15 min)
+  → Read 00_READ_ME_FIRST.md
+  → Skim HIRING_GUIDE.md for workflow
+
+STEP 2: Customize if needed (30 min)
+  → Review starter_schema.sql (does it match your needs?)
+  → Check time limit (2 hours? too tight/loose?)
+  → Review evaluation_rubric.md weights (60% backend, 25% frontend?)
+
+STEP 3: Test it yourself (60 min)
+  → Run through renewal_risk_takehome.md as if you were a candidate
+  → Follow seed_and_testing.md to verify it works
+  → Ensures you understand the feature before sending to candidates
+
+STEP 4: Send to first candidate
+  → Email template in HIRING_GUIDE.md
+  → Attach: renewal_risk_takehome.md, starter_schema.sql, seed_and_testing.md
+  → Set 2-hour timer
+
+STEP 5: Evaluate submission (60 min)
+  → Use evaluation_rubric.md as checklist
+  → Clone repo, run it, test it
+  → Score using 100-point scale
+  → Note questions for Round 3
+
+STEP 6: Round 3 interview (45 min)
+  → Use deep-dive questions from evaluation_rubric.md
+  → Ask about schema design, webhooks, queries
+  → Test ability to explain decisions
+
+STEP 7: Hire/reject decision
+  → 80+ points + good Round 3 = strong hire
+  → 50-70 points + okay Round 3 = borderline
+  → <50 points or red flags = reject
+
+TOTAL TIME PER CANDIDATE: ~3 hours
+  - 1.5 hours evaluation
+  - 0.75 hours interview
+  - 0.75 hours debrief
+
+================================================================================
+KEY DIFFERENTIATORS
+================================================================================
+
+Why This Package Works Better Than Alternatives:
+
+1. COMPREHENSIVE
+   → Tests full-stack (not just coding ability)
+   → Tests scalability thinking (webhooks, retries)
+   → Tests pragmatism (real 2-hour deadline)
+
+2. FAIR
+   → Starter schema saves 30 min of boilerplate
+   → 2-hour deadline is tight but doable
+   → Ambiguity is intentional (not a gotcha)
+
+3. CONSISTENT
+   → Rubric ensures all evaluators score the same
+   → Red flags are clear (auto-fail conditions)
+   → Deep-dive questions are standardized
+
+4. EFFICIENT
+   → 60 min evaluation
+   → 45 min interview
+   → Clear decision framework
+
+5. HONEST
+   → Tests for agentic development usage
+   → Signals when AI code is used vs. human code
+   → Values pragmatism over perfection
+
+================================================================================
+RED FLAGS (AUTO-FAIL)
+================================================================================
+
+If you see ANY of these, reject:
+
+1. Webhook state is in memory
+   → Will lose state on restart (critical bug)
+
+2. No idempotency
+   → Webhooks delivered multiple times (data corruption)
+
+3. SQL injection
+   → Concatenating user input into queries (security issue)
+
+4. Dishonesty
+   → Claims they wrote code they didn't
+   → Hides AI usage
+
+5. Broken schema
+   → Can't query residents by property (fundamentally broken)
+
+6. Unreadable code
+   → No one could maintain it (you'll pay for it later)
+
+================================================================================
+GREEN FLAGS (STRONG HIRE)
+================================================================================
+
+Look for these signals:
+
+1. Thoughtful schema design
+   → Clear rationale for structure
+   → Proper indexes
+   → Multi-tenant safe
+
+2. Bulletproof webhooks
+   → Retry logic with exponential backoff
+   → Idempotency (no duplicate deliveries)
+   → Dead-letter queue
+   → Request signing documented
+
+3. Performance-aware queries
+   → No N+1 queries
+   → Proper indexes
+   → Batch operations where appropriate
+
+4. Clean code
+   → Clear separation of concerns
+   → Organized folder structure
+   → Self-documenting
+
+5. Good error handling
+   → Edge cases considered
+   → Graceful failures
+   → User feedback
+
+6. Honest about AI
+   → Clearly identifies what was generated
+   → Explains why
+   → Shows they understand the generated code
+
+7. Clear documentation
+   → README is complete
+   → Schema decisions explained
+   → Testing instructions clear
+
+8. Minimal but functional UI
+   → Not over-designed
+   → Usable by property managers
+   → Good information hierarchy
+
+================================================================================
+EVALUATION RUBRIC AT A GLANCE
+================================================================================
+
+100 Points Total
+
+Backend (60 points)
+  - Data modeling (15): Schema design, multi-tenancy, indexes
+  - API design (15): REST endpoints, error handling, validation
+  - Webhooks (20): Retry logic, idempotency, DLQ, signatures
+  - Query performance (10): Efficient queries, no N+1
+
+Frontend (25 points)
+  - Functionality (15): Loads data, handles errors, actions work
+  - UX (10): Clear, usable, good information hierarchy
+
+Code Quality (15 points)
+  - Clarity & maintainability (8): Readable, organized, comments
+  - Error handling (4): Edge cases, validation, graceful failures
+  - Testing mindset (3): Testable design, seed data, manual tests
+
+Agentic Development (Bonus, +5 points)
+  - Identifies AI-generated parts
+  - Explains tradeoffs
+  - Shows understanding of generated code
+
+Scoring Guide:
+  80+ = strong hire
+  70-79 = good hire, proceed to Round 3
+  50-69 = borderline, needs perfect Round 3
+  <50 = likely not a fit, polite rejection
+
+================================================================================
+EXAMPLE TIMELINE
+================================================================================
+
+Friday 2pm:   Send take-home to candidate
+Saturday 4pm: Candidate submits GitHub repo
+Monday 9am:   You evaluate (1.5 hours)
+Monday 10:30am: Schedule Round 3 interview
+Tuesday 2pm:  45-min pitch defense interview
+Tuesday 3pm:  Debrief with team
+Tuesday 4pm:  Send offer/rejection
+
+Total: 1 week from submission to decision
+
+================================================================================
+WHAT'S INCLUDED VS. NOT INCLUDED
+================================================================================
+
+INCLUDED IN THIS PACKAGE:
+✓ Complete project brief
+✓ Starter database schema
+✓ Evaluation rubric (100-point scale)
+✓ Testing guide with seed data
+✓ Hiring workflow and timeline
+✓ Interview questions (deep-dive)
+✓ Sample excellent submission (reference)
+✓ FAQ and troubleshooting
+
+NOT INCLUDED:
+✗ Actual candidate submissions (you'll get those)
+✗ Interview scheduling tool (use Calendly or similar)
+✗ Background check/reference process (your HR)
+✗ Compensation discussion (your recruiter)
+
+================================================================================
+QUICK CHECKLIST
+================================================================================
+
+Before sending to first candidate:
+☐ Read 00_READ_ME_FIRST.md (15 min)
+☐ Review HIRING_GUIDE.md (15 min)
+☐ Test the feature yourself (60 min)
+☐ Customize if needed (schema, time, weights)
+☐ Copy email template from HIRING_GUIDE.md
+☐ Attach 3 files: takehome.md, schema.sql, testing.md
+☐ Set 2-hour timer when candidate receives
+
+Before evaluating submission:
+☐ Clone repo and verify it runs
+☐ Follow seed_and_testing.md (10 min)
+☐ Score using evaluation_rubric.md (20 min)
+☐ Note questions for Round 3
+
+Before Round 3 interview:
+☐ Print deep-dive questions from rubric
+☐ Review candidate's code (10 min)
+☐ Prepare follow-ups based on submission
+
+================================================================================
+SUPPORT & QUESTIONS
+================================================================================
+
+FAQ: See HIRING_GUIDE.md (complete FAQ section)
+Evaluation help: See evaluation_rubric.md (detailed scoring guide)
+Testing help: See seed_and_testing.md (troubleshooting section)
+Interview help: See evaluation_rubric.md (deep-dive questions)
+What to look for: See SAMPLE_EXCELLENT_SUBMISSION.md (reference)
+
+================================================================================
+FINAL NOTES
+================================================================================
+
+This package represents ~40 hours of work designing a hiring solution that:
+- Tests the right things (full-stack, scalability, pragmatism)
+- Is fair to candidates (doable in 2 hours)
+- Is consistent (rubric prevents bias)
+- Is efficient (60 min evaluation, 45 min interview)
+- Is honest (values AI usage transparency)
+
+It's designed for VPE/hiring managers who want to:
+- Ship faster (clear process, less back-and-forth)
+- Evaluate fairly (rubric, red/green flags)
+- Hire better (tests real shipping skills)
+
+Use it, customize it, adapt it to your needs. Good luck with hiring!
+
+================================================================================
+END OF DELIVERY SUMMARY
+================================================================================
