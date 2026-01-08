@@ -8,199 +8,178 @@ This guide helps you set up realistic test data and manually verify the renewal 
 
 ## Sample Seed Data Script
 
-Below is a TypeScript/Node.js seed script you can adapt. This creates:
+Below is a SQL seed script you can run directly in your PostgreSQL database. This creates:
 - 1 property with 20 units
 - 15 residents with varied lease situations
 - Realistic pricing and payment history
 - Some residents at risk of not renewing
 
-```typescript
-// seed.ts
-import { Database } from './src/db';
+```sql
+-- seed.sql
+-- Note: Run this script after creating your schema
 
-async function seed() {
-  const db = new Database();
+-- Create property
+INSERT INTO properties (name, address, city, state, zip_code, status)
+VALUES ('Park Meadows Apartments', '123 Main St', 'Denver', 'CO', '80206', 'active')
+RETURNING id;
 
-  // Create property
-  const property = await db.query(`
-    INSERT INTO properties (name, address, city, state, zip_code, status)
-    VALUES ($1, $2, $3, $4, $5, $6)
-    RETURNING *
-  `, ['Park Meadows Apartments', '123 Main St', 'Denver', 'CO', '80206', 'active']);
-  
-  const propertyId = property.rows[0].id;
-  console.log('Created property:', propertyId);
+-- Store the property_id from above, then replace :property_id in the script below
+-- For convenience, we'll use a CTE-based approach:
 
-  // Create unit types
-  const unitType = await db.query(`
-    INSERT INTO unit_types (property_id, name, bedrooms, bathrooms, square_footage)
-    VALUES ($1, $2, $3, $4, $5)
-    RETURNING *
-  `, [propertyId, '1BR/1BA', 1, 1, 700]);
-  
-  const unitTypeId = unitType.rows[0].id;
-
-  // Create 20 units
-  const units = [];
-  for (let i = 1; i <= 20; i++) {
-    const unit = await db.query(`
-      INSERT INTO units (property_id, unit_type_id, unit_number, floor, status)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *
-    `, [propertyId, unitTypeId, `${100 + i}`, Math.floor(i / 10) + 1, 'occupied']);
-    units.push(unit.rows[0]);
-  }
-  console.log('Created 20 units');
-
-  // Create unit pricing (current market rate: $1,600/month)
-  const today = new Date().toISOString().split('T')[0];
-  for (const unit of units) {
-    await db.query(`
-      INSERT INTO unit_pricing (unit_id, base_rent, market_rent, effective_date)
-      VALUES ($1, $2, $3, $4)
-    `, [unit.id, 1600, 1600, today]);
-  }
-  console.log('Created unit pricing');
-
-  // Create residents with varied scenarios
-  const scenarios = [
-    // Scenario 1: High risk - lease expires in 45 days, no renewal offer, paying on time
-    {
-      firstName: 'Jane',
-      lastName: 'Doe',
-      leaseStart: '2023-01-15',
-      leaseEnd: '2025-02-15', // 45 days from now
-      monthlyRent: 1400, // Below market
-      delinquentMonths: 0,
-      renewalOfferSent: false,
-    },
-    // Scenario 2: Medium risk - lease expires in 60 days, missed one payment
-    {
-      firstName: 'John',
-      lastName: 'Smith',
-      leaseStart: '2023-01-15',
-      leaseEnd: '2025-03-15',
-      monthlyRent: 1500,
-      delinquentMonths: 1,
-      renewalOfferSent: false,
-    },
-    // Scenario 3: Low risk - 6 months left on lease
-    {
-      firstName: 'Alice',
-      lastName: 'Johnson',
-      leaseStart: '2023-06-15',
-      leaseEnd: '2025-07-15',
-      monthlyRent: 1600,
-      delinquentMonths: 0,
-      renewalOfferSent: true,
-    },
-    // Scenario 4: High risk - Month-to-month
-    {
-      firstName: 'Bob',
-      lastName: 'Williams',
-      leaseStart: '2024-12-01',
-      leaseEnd: '2025-01-01', // Expired, now on MTM
-      monthlyRent: 1450,
-      delinquentMonths: 0,
-      renewalOfferSent: false,
-    },
-    // Add 11 more residents with varied scenarios...
-    // (You can generate these programmatically)
-  ];
-
-  for (let i = 0; i < scenarios.length && i < units.length; i++) {
-    const scenario = scenarios[i];
-    const unit = units[i];
-
-    // Create resident
-    const resident = await db.query(`
-      INSERT INTO residents (property_id, unit_id, first_name, last_name, email, status)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING *
-    `, [
-      propertyId,
-      unit.id,
-      scenario.firstName,
-      scenario.lastName,
-      `${scenario.firstName.toLowerCase()}.${scenario.lastName.toLowerCase()}@example.com`,
-      'active',
-    ]);
-
-    const residentId = resident.rows[0].id;
-
-    // Create lease
-    const lease = await db.query(`
-      INSERT INTO leases (property_id, resident_id, unit_id, lease_start_date, lease_end_date, monthly_rent, lease_type, status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING *
-    `, [
-      propertyId,
-      residentId,
-      unit.id,
-      scenario.leaseStart,
-      scenario.leaseEnd,
-      scenario.monthlyRent,
-      scenario.leaseEnd < today ? 'month_to_month' : 'fixed',
-      'active',
-    ]);
-
-    // Add rent payments for last 6 months (with gaps if delinquent)
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    
-    for (let m = 0; m < 6; m++) {
-      const paymentDate = new Date(sixMonthsAgo);
-      paymentDate.setMonth(paymentDate.getMonth() + m);
-      
-      // Skip payment if scenario specifies delinquency
-      if (m < 6 - scenario.delinquentMonths) {
-        await db.query(`
-          INSERT INTO resident_ledger (property_id, resident_id, transaction_type, charge_code, amount, transaction_date)
-          VALUES ($1, $2, $3, $4, $5, $6)
-        `, [
-          propertyId,
-          residentId,
-          'payment',
-          'rent',
-          scenario.monthlyRent,
-          paymentDate.toISOString().split('T')[0],
-        ]);
-      }
-    }
-
-    // Create renewal offer if scenario specifies
-    if (scenario.renewalOfferSent) {
-      const renewalStart = new Date(scenario.leaseEnd);
-      const renewalEnd = new Date(renewalStart);
-      renewalEnd.setFullYear(renewalEnd.getFullYear() + 1);
-
-      await db.query(`
-        INSERT INTO renewal_offers (property_id, resident_id, lease_id, renewal_start_date, renewal_end_date, proposed_rent, status)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `, [
-        propertyId,
-        residentId,
-        lease.rows[0].id,
-        renewalStart.toISOString().split('T')[0],
-        renewalEnd.toISOString().split('T')[0],
-        1650, // 3% increase
-        'pending',
-      ]);
-    }
-  }
-
-  console.log('Seed complete!');
-  await db.close();
-}
-
-seed().catch(console.error);
+WITH property_data AS (
+  INSERT INTO properties (name, address, city, state, zip_code, status)
+  VALUES ('Park Meadows Apartments', '123 Main St', 'Denver', 'CO', '80206', 'active')
+  RETURNING id
+),
+unit_type_data AS (
+  INSERT INTO unit_types (property_id, name, bedrooms, bathrooms, square_footage)
+  SELECT id, '1BR/1BA', 1, 1, 700
+  FROM property_data
+  RETURNING id, property_id
+),
+units_data AS (
+  INSERT INTO units (property_id, unit_type_id, unit_number, floor, status)
+  SELECT
+    ut.property_id,
+    ut.id,
+    (100 + gs.n)::text,
+    FLOOR(gs.n / 10) + 1,
+    'occupied'
+  FROM unit_type_data ut
+  CROSS JOIN generate_series(1, 20) AS gs(n)
+  RETURNING id, property_id, unit_type_id, unit_number
+),
+unit_pricing_data AS (
+  INSERT INTO unit_pricing (unit_id, base_rent, market_rent, effective_date)
+  SELECT id, 1600, 1600, CURRENT_DATE
+  FROM units_data
+  RETURNING unit_id
+),
+-- Scenario 1: High risk - lease expires in 45 days, no renewal offer, paying on time
+resident_1 AS (
+  INSERT INTO residents (property_id, unit_id, first_name, last_name, email, status)
+  SELECT property_id, id, 'Jane', 'Doe', 'jane.doe@example.com', 'active'
+  FROM units_data WHERE unit_number = '101'
+  RETURNING id, property_id, unit_id
+),
+lease_1 AS (
+  INSERT INTO leases (property_id, resident_id, unit_id, lease_start_date, lease_end_date, monthly_rent, lease_type, status)
+  SELECT property_id, id, unit_id, '2023-01-15', CURRENT_DATE + INTERVAL '45 days', 1400, 'fixed', 'active'
+  FROM resident_1
+  RETURNING id, property_id, resident_id
+),
+payments_1 AS (
+  INSERT INTO resident_ledger (property_id, resident_id, transaction_type, charge_code, amount, transaction_date)
+  SELECT
+    r.property_id,
+    r.id,
+    'payment',
+    'rent',
+    1400,
+    CURRENT_DATE - INTERVAL '1 month' * (6 - gs.n)
+  FROM resident_1 r
+  CROSS JOIN generate_series(0, 5) AS gs(n)
+  RETURNING id
+),
+-- Scenario 2: Medium risk - lease expires in 60 days, missed one payment
+resident_2 AS (
+  INSERT INTO residents (property_id, unit_id, first_name, last_name, email, status)
+  SELECT property_id, id, 'John', 'Smith', 'john.smith@example.com', 'active'
+  FROM units_data WHERE unit_number = '102'
+  RETURNING id, property_id, unit_id
+),
+lease_2 AS (
+  INSERT INTO leases (property_id, resident_id, unit_id, lease_start_date, lease_end_date, monthly_rent, lease_type, status)
+  SELECT property_id, id, unit_id, '2023-01-15', CURRENT_DATE + INTERVAL '60 days', 1500, 'fixed', 'active'
+  FROM resident_2
+  RETURNING id, property_id, resident_id
+),
+payments_2 AS (
+  INSERT INTO resident_ledger (property_id, resident_id, transaction_type, charge_code, amount, transaction_date)
+  SELECT
+    r.property_id,
+    r.id,
+    'payment',
+    'rent',
+    1500,
+    CURRENT_DATE - INTERVAL '1 month' * (6 - gs.n)
+  FROM resident_2 r
+  CROSS JOIN generate_series(0, 4) AS gs(n) -- Only 5 payments (1 missed)
+  RETURNING id
+),
+-- Scenario 3: Low risk - 6 months left on lease, renewal offer sent
+resident_3 AS (
+  INSERT INTO residents (property_id, unit_id, first_name, last_name, email, status)
+  SELECT property_id, id, 'Alice', 'Johnson', 'alice.johnson@example.com', 'active'
+  FROM units_data WHERE unit_number = '103'
+  RETURNING id, property_id, unit_id
+),
+lease_3 AS (
+  INSERT INTO leases (property_id, resident_id, unit_id, lease_start_date, lease_end_date, monthly_rent, lease_type, status)
+  SELECT property_id, id, unit_id, '2023-06-15', CURRENT_DATE + INTERVAL '180 days', 1600, 'fixed', 'active'
+  FROM resident_3
+  RETURNING id, property_id, resident_id
+),
+payments_3 AS (
+  INSERT INTO resident_ledger (property_id, resident_id, transaction_type, charge_code, amount, transaction_date)
+  SELECT
+    r.property_id,
+    r.id,
+    'payment',
+    'rent',
+    1600,
+    CURRENT_DATE - INTERVAL '1 month' * (6 - gs.n)
+  FROM resident_3 r
+  CROSS JOIN generate_series(0, 5) AS gs(n)
+  RETURNING id
+),
+renewal_3 AS (
+  INSERT INTO renewal_offers (property_id, resident_id, lease_id, renewal_start_date, renewal_end_date, proposed_rent, status)
+  SELECT
+    l.property_id,
+    l.resident_id,
+    l.id,
+    CURRENT_DATE + INTERVAL '180 days',
+    CURRENT_DATE + INTERVAL '545 days',
+    1650,
+    'pending'
+  FROM lease_3 l
+  RETURNING id
+),
+-- Scenario 4: High risk - Month-to-month
+resident_4 AS (
+  INSERT INTO residents (property_id, unit_id, first_name, last_name, email, status)
+  SELECT property_id, id, 'Bob', 'Williams', 'bob.williams@example.com', 'active'
+  FROM units_data WHERE unit_number = '104'
+  RETURNING id, property_id, unit_id
+),
+lease_4 AS (
+  INSERT INTO leases (property_id, resident_id, unit_id, lease_start_date, lease_end_date, monthly_rent, lease_type, status)
+  SELECT property_id, id, unit_id, '2024-12-01', '2025-01-01', 1450, 'month_to_month', 'active'
+  FROM resident_4
+  RETURNING id, property_id, resident_id
+),
+payments_4 AS (
+  INSERT INTO resident_ledger (property_id, resident_id, transaction_type, charge_code, amount, transaction_date)
+  SELECT
+    r.property_id,
+    r.id,
+    'payment',
+    'rent',
+    1450,
+    CURRENT_DATE - INTERVAL '1 month' * (6 - gs.n)
+  FROM resident_4 r
+  CROSS JOIN generate_series(0, 5) AS gs(n)
+  RETURNING id
+)
+SELECT 'Seed data inserted successfully!' AS result;
 ```
 
 **To run:**
 ```bash
-npm run seed
+psql -U your_username -d your_database -f seed.sql
 # or
-ts-node seed.ts
+psql your_database < seed.sql
 ```
 
 ---
